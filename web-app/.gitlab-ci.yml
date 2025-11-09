@@ -1,0 +1,123 @@
+stages:
+  - build
+  - test
+  - deploy
+  - notify
+
+variables:
+  APP_NAME: "karnataka-poc-webapp"
+  
+  # EC2 Configuration (override in GitLab CI/CD Variables)
+  EC2_HOST: "ec2-18-60-109-71.ap-south-2.compute.amazonaws.com"
+  EC2_USER: "ubuntu"
+  # EC2_PRIVATE_KEY_BASE64 should be set as a protected variable in GitLab
+  # Create it with: base64 -w 0 ~/.ssh/gitlab-deployment-key.pem
+  
+  # Email Notification Configuration (override in GitLab CI/CD Variables)
+  SMTP_SERVER: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  NOTIFICATION_EMAILS: "admin@example.com,devops@example.com"
+  # Required GitLab CI Variables:
+  # - SMTP_USERNAME (Gmail email address)
+  # - SMTP_PASSWORD (Gmail App Password - not regular password!)
+  # - NOTIFICATION_FROM_EMAIL (sender email, usually same as SMTP_USERNAME)
+
+# Build stage - prepare the application
+build_app:
+  stage: build
+  tags:
+    - shell
+  script:
+    - echo "🔨 Building Karnataka PoC Web Application..."
+    - ls -la
+    - echo "📋 Application files ready for deployment"
+    - chmod +x deploy.sh
+  artifacts:
+    paths:
+      - index.html
+      - deploy.sh
+    expire_in: 1 hour
+
+# Test stage - basic validation
+test_app:
+  stage: test
+  tags:
+    - shell
+  dependencies:
+    - build_app
+  script:
+    - echo "🧪 Testing web application..."
+    - test -f index.html || (echo "❌ index.html not found" && exit 1)
+    - test -f deploy.sh || (echo "❌ deploy.sh not found" && exit 1)
+    - grep -q "Karnataka PoC" index.html || (echo "❌ Content validation failed" && exit 1)
+    - echo "✅ All tests passed!"
+
+# Deploy stage - deploy to EC2
+deploy_to_ec2:
+  stage: deploy
+  tags:
+    - shell
+  dependencies:
+    - build_app
+  script:
+    - echo "🚀 Deploying to EC2 instance..."
+    - echo "📋 Current directory contents:"
+    - ls -la
+    
+    # Check if EC2 connection variables are set
+    - echo "🔍 EC2 Connection Details:"
+    - echo "Host $EC2_HOST"
+    - echo "User $EC2_USER"
+    - |
+      if [ -z "$EC2_PRIVATE_KEY_BASE64" ]; then
+        echo "❌ EC2_PRIVATE_KEY_BASE64 variable not set!"
+        echo "Please set EC2_PRIVATE_KEY_BASE64 as a protected variable in GitLab CI/CD Variables"
+        echo "Create it with: base64 -w 0 ~/.ssh/gitlab-deployment-key.pem"
+        echo "Go to: Project Settings → CI/CD → Variables"
+        exit 1
+      fi
+    
+    # Setup SSH key from base64 encoded variable
+    - mkdir -p ~/.ssh
+    - echo "🔑 Decoding SSH private key..."
+    - echo "$EC2_PRIVATE_KEY_BASE64" | base64 -d > ~/.ssh/ec2_key
+    - chmod 600 ~/.ssh/ec2_key
+    - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+    
+    # Validate SSH key format
+    - echo "🔍 Validating SSH key format..."
+    - ssh-keygen -l -f ~/.ssh/ec2_key || (echo "❌ Invalid SSH key format! Check EC2_PRIVATE_KEY_BASE64 variable." && exit 1)
+    
+    # Create SSH config to prevent authentication failures
+    - |
+      cat > ~/.ssh/config << EOF
+      Host ec2-deploy
+        HostName $EC2_HOST
+        User $EC2_USER
+        IdentityFile ~/.ssh/ec2_key
+        IdentitiesOnly yes
+        StrictHostKeyChecking no
+        UserKnownHostsFile ~/.ssh/known_hosts
+      EOF
+    - chmod 600 ~/.ssh/config
+    
+    # Test SSH connection first
+    - echo "🔐 Testing SSH connection..."
+    - ssh ec2-deploy "echo 'SSH connection successful!'"
+    
+    # Copy files to EC2
+    - echo "📤 Copying files to EC2..."
+    - scp index.html deploy.sh ec2-deploy:~/
+    
+    # Execute deployment script on EC2
+    - echo "⚙️ Executing deployment on EC2..."
+    - ssh ec2-deploy "chmod +x ~/deploy.sh && ~/deploy.sh"
+    
+    - echo "🎉 Deployment completed! Check http://$EC2_HOST"
+    
+  # Only deploy on main branch
+  only:
+    - main
+  
+  # Uncomment the line below if you want manual deployment for safety
+  # when: manual

@@ -1,0 +1,58 @@
+services:
+  gitlab:
+    image: docker.io/gitlab/gitlab-ce:latest
+    container_name: gitlab-selfhosted-gitlab
+    restart: unless-stopped
+    hostname: gitlab
+    privileged: true
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8929'
+        gitlab_rails['gitlab_https'] = false
+        gitlab_rails['gitlab_host'] = 'gitlab'
+        gitlab_rails['gitlab_ssh_host'] = 'gitlab'
+        gitlab_rails['gitlab_clone_host'] = 'gitlab:8929'
+        nginx['listen_port'] = 8929
+        nginx['listen_addresses'] = ['0.0.0.0']
+        gitlab_sshd['enable'] = false
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+    ports:
+      - "8929:8929"
+      - "2222:22"
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    shm_size: "256m"
+    networks:
+      - gitlab-network
+
+  gitlab-runner:
+    build:
+      context: ../gitlab-runner
+      dockerfile: Dockerfile.runner
+    container_name: gitlab-selfhosted-runner
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    environment:
+      RUNNER_TOKEN: ""
+      GITLAB_URL: "http://gitlab:8929"
+      RUNNER_NAME: "gitlab-selfhosted-runner"
+      RUNNER_TAGS: "shell,docker,podman,compose"
+    volumes:
+      - gitlab-runner-config:/etc/gitlab-runner
+      - gitlab-runner-home:/home/gitlab-runner
+    networks:
+      - gitlab-network
+
+networks:
+  gitlab-network:
+    driver: bridge
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  gitlab-runner-config:
+  gitlab-runner-home:

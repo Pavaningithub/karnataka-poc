@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karnataka PoC Web App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+        .deployment-info {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Karnataka PoC Web Application</h1>
+        <div class="info">
+            <h3>Successfully Deployed via GitLab CI/CD!</h3>
+            <p>This is a simple web application deployed automatically to EC2 using our GitLab CI/CD pipeline.</p>
+        </div>
+        
+        <div class="deployment-info">
+            <p><strong>Deployment Date:</strong> <span id="deployTime"></span></p>
+            <p><strong>Environment:</strong> EC2 Production</p>
+            <p><strong>Pipeline:</strong> GitLab CI/CD</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('deployTime').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>
