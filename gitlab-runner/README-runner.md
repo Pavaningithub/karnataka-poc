@@ -23,7 +23,7 @@ echo "Using GitLab network: $GITLAB_NETWORK"
 podman run -d \
     --name gitlab-runner \
     --network "$GITLAB_NETWORK" \
-    -e RUNNER_TOKEN="glrt-SlDDWdqI1lWeRXKNPJqZ8286MQp0OjEKdToxCw.01.120uun6fh" \
+    -e RUNNER_TOKEN="glrt-xxxx" \
     -e GITLAB_URL="http://gitlab:8929" \
     -e RUNNER_NAME="podman-runner-1" \
     -e RUNNER_TAGS="podman,shell,ci" \
@@ -39,7 +39,7 @@ podman run -d \
 podman run -d \
     --name gitlab-runner \
     --network karnataka-poc_gitlab-network \
-    -e RUNNER_TOKEN="glrt-SlDDWdqI1lWeRXKNPJqZ8286MQp0OjEKdToxCw.01.120uun6fh" \
+    -e RUNNER_TOKEN="glrt-xxxx" \
     -e GITLAB_URL="http://gitlab:8929" \
     -e RUNNER_NAME="podman-runner-1" \
     -e RUNNER_TAGS="podman,shell,ci" \
